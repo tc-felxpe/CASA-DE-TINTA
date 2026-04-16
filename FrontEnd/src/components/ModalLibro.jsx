@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useCarrito } from '../context/CarritoContext'
+import { getLibroImagen } from '../config/imagenes'
 import './ModalLibro.css'
 
 export default function ModalLibro({ libro, onClose }) {
@@ -31,8 +32,8 @@ export default function ModalLibro({ libro, onClose }) {
 
         <div className="modal-content">
           <div className="modal-imagen">
-            {(libro.imagen_url || libro.imagen) ? (
-              <img src={libro.imagen_url || libro.imagen} alt={libro.titulo} />
+            {getLibroImagen(libro) ? (
+              <img src={getLibroImagen(libro)} alt={libro.titulo} />
             ) : (
               <div className="modal-sin-imagen">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import ModalLibro from '../components/ModalLibro'
 import BookCard from '../components/BookCard'
 import { apiFetch } from '../config/api'
+import { getLibroImagen } from '../config/imagenes'
 import './Home.css'
 
 export default function Home() {
@@ -119,7 +120,7 @@ export default function Home() {
               title={libro.titulo}
               author={libro.autor}
               price={libro.precio}
-              image={libro.imagen_url || libro.imagen}
+              image={getLibroImagen(libro)}
               onClick={() => setLibroSeleccionado(libro)}
             />
           ))}
