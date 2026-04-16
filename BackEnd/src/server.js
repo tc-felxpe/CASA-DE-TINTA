@@ -1,8 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const swaggerUi = require('swagger-ui-express');
-const swaggerSpec = require('./config/swagger');
 const { inicializarLibros, isSupabaseConfigured } = require('./config/supabase');
 
 const librosRoutes = require('./routes/librosRoutes');
@@ -22,22 +20,18 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customCss: `
-    .swagger-ui .topbar { display: none }
-    .swagger-ui .info .title { font-size: 32px !important; }
-    .swagger-ui .scheme-container { background: #f8fafc; padding: 15px; border-radius: 8px; }
-  `,
-  customSiteTitle: 'API Librería - Documentación Swagger',
-  customfavIcon: '/favicon.ico'
-}));
+// Swagger solo en local, no en Vercel
+if (process.env.VERCEL !== '1') {
+  const swaggerUi = require('swagger-ui-express');
+  const swaggerSpec = require('./config/swagger');
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+}
 
 app.get('/', (req, res) => {
   res.json({
     message: 'Bienvenido a la API de la Librería Online',
     version: '1.0.0',
-    descripcion: 'Sistema completo de gestión de librería con Supabase',
-    documentacion: '/api-docs',
+    descripcion: 'Sistema completo de gestión de librería',
     endpoints: {
       libros: '/api/libros',
       autenticacion: '/api/auth',
@@ -86,23 +80,7 @@ inicializarLibros();
 
 if (process.env.VERCEL !== '1') {
   app.listen(PORT, () => {
-    console.log('');
-    console.log('╔═══════════════════════════════════════════════════════════════════════════╗');
-    console.log('║                                                                           ║');
-    console.log('║   🚀  API Librería Online iniciada                                        ║');
-    console.log('║                                                                           ║');
-    console.log(`║   📖  Documentación Swagger:  http://localhost:${PORT}/api-docs                  ║`);
-    console.log(`║   🏠  Página de inicio:       http://localhost:${PORT}                            ║`);
-    console.log(`║   ❤️   Estado de salud:         http://localhost:${PORT}/health                     ║`);
-    console.log('║                                                                           ║');
-    if (isSupabaseConfigured()) {
-      console.log('║   🗄️   Base de datos:           Supabase (PostgreSQL)                          ║');
-    } else {
-      console.log('║   🗄️   Base de datos:           Memoria local (modo desarrollo)                ║');
-    }
-    console.log('║                                                                           ║');
-    console.log('╚═══════════════════════════════════════════════════════════════════════════╝');
-    console.log('');
+    console.log(`Servidor corriendo en http://localhost:${PORT}`);
   });
 }
 
