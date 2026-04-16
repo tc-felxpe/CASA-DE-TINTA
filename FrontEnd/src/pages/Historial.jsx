@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useCarrito } from '../context/CarritoContext'
 import { apiFetch } from '../config/api'
+import { getLibroImagen } from '../config/imagenes'
 import './Historial.css'
 
 export default function Historial() {
@@ -172,8 +173,8 @@ export default function Historial() {
                   return (
                     <li key={idx} className="libro-item">
                       <div className="libro-imagen">
-                        {libro.imagen ? (
-                          <img src={libro.imagen} alt={libro.titulo} />
+                        {getLibroImagen(libro) ? (
+                          <img src={getLibroImagen(libro)} alt={libro.titulo} />
                         ) : (
                           <div className="libro-sin-imagen">📖</div>
                         )}

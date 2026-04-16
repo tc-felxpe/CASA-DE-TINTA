@@ -1,23 +1,11 @@
+const { v4: uuidv4 } = require('uuid');
 const { supabase, supabaseAdmin, isSupabaseConfigured } = require('../config/supabase');
+const { db, buscarLibroPorId, actualizarStockLibro, buscarOrdenesPorUsuario, getOrdenPorId } = require('../data/database');
 
 const crearNuevaOrden = async (req, res) => {
   try {
-    console.log('Body recibido:', req.body);
-    console.log('Headers:', req.headers);
-    
     const { libros } = req.body;
     const usuarioId = req.usuario.id;
-
-    console.log('Libros recibidos:', libros);
-    console.log('Usuario ID:', usuarioId);
-
-    if (!isSupabaseConfigured()) {
-      return res.status(501).json({
-        success: false,
-        message: 'Función no disponible',
-        error: 'Configure Supabase para crear órdenes'
-      });
-    }
 
     if (!libros || !Array.isArray(libros) || libros.length === 0) {
       return res.status(400).json({
@@ -27,130 +15,150 @@ const crearNuevaOrden = async (req, res) => {
       });
     }
 
-    const libroIds = libros.map(libro => libro.id);
-    console.log('IDs de libros:', libroIds);
+    if (isSupabaseConfigured() && supabaseAdmin) {
+      const libroIds = libros.map(libro => libro.id);
+      const { data: librosDb, error: errorLibros } = await supabase
+        .from('libros')
+        .select('*')
+        .in('id', libroIds);
 
-    const { data: librosDb, error: errorLibros } = await supabase
-      .from('libros')
-      .select('*')
-      .in('id', libroIds);
+      if (errorLibros) throw errorLibros;
 
-    if (errorLibros) {
-      console.error('Error al buscar libros:', errorLibros);
-      throw errorLibros;
-    }
-
-    console.log('Libros encontrados en BD:', librosDb);
-
-    if (!librosDb || librosDb.length !== libros.length) {
-      const librosEncontrados = librosDb ? librosDb.map(l => l.id) : [];
-      const noEncontrados = libros.filter(libro => !librosEncontrados.includes(libro.id));
-      return res.status(400).json({
-        success: false,
-        message: 'Libro no encontrado',
-        error: `No existen libros con los IDs: ${noEncontrados.map(l => l.id).join(', ')}`
-      });
-    }
-
-    // Verificar stock disponible
-    for (const libroCarrito of libros) {
-      const libro = librosDb.find(l => l.id === libroCarrito.id);
-      if (!libro) continue;
-
-      if (!libroCarrito.cantidad || libroCarrito.cantidad < 1) {
+      if (!librosDb || librosDb.length !== libros.length) {
+        const librosEncontrados = librosDb ? librosDb.map(l => l.id) : [];
+        const noEncontrados = libros.filter(libro => !librosEncontrados.includes(libro.id));
         return res.status(400).json({
           success: false,
-          message: 'Cantidad inválida',
-          error: `La cantidad para "${libro.titulo}" debe ser al menos 1`
+          message: 'Libro no encontrado',
+          error: `No existen libros con los IDs: ${noEncontrados.map(l => l.id).join(', ')}`
         });
       }
 
-      if (libro.stock < libroCarrito.cantidad) {
-        return res.status(400).json({
-          success: false,
-          message: 'Stock insuficiente',
-          error: `Solo hay ${libro.stock} copias disponibles de "${libro.titulo}"`
-        });
-      }
-    }
-
-    let total = 0;
-    const detallesOrden = [];
-
-    for (const libroCarrito of libros) {
-      const libro = librosDb.find(l => l.id === libroCarrito.id);
-      if (!libro) continue;
-      
-      const subtotal = libro.precio * libroCarrito.cantidad;
-      total += subtotal;
-
-      detallesOrden.push({
-        libro_id: libro.id,
-        cantidad: libroCarrito.cantidad,
-        precio_unitario: libro.precio
-      });
-    }
-
-    console.log('Total calculado:', total);
-    console.log('Detalles de orden:', detallesOrden);
-
-    const { data: orden, error: errorOrden } = await supabaseAdmin
-      .from('orden_compra')
-      .insert({
-        usuario_id: usuarioId,
-        total: total,
-        estado: 'pendiente'
-      })
-      .select()
-      .single();
-
-    if (errorOrden) {
-      console.error('Error al crear orden:', errorOrden);
-      throw errorOrden;
-    }
-
-    console.log('Orden creada:', orden);
-
-    if (detallesOrden.length > 0) {
-      const detallesConOrdenId = detallesOrden.map(detalle => ({
-        ...detalle,
-        orden_id: orden.id
-      }));
-
-      const { error: errorDetalles } = await supabaseAdmin
-        .from('detalle_orden')
-        .insert(detallesConOrdenId);
-
-      if (errorDetalles) {
-        console.error('Error al crear detalles:', errorDetalles);
-        throw errorDetalles;
-      }
-
-      // Descontar stock de cada libro
-      for (const detalle of detallesOrden) {
-        const { error: errorStock } = await supabaseAdmin
-          .from('libros')
-          .update({ stock: librosDb.find(l => l.id === detalle.libro_id).stock - detalle.cantidad })
-          .eq('id', detalle.libro_id);
-
-        if (errorStock) {
-          console.error('Error al actualizar stock:', errorStock);
-          throw errorStock;
+      for (const libroCarrito of libros) {
+        const libro = librosDb.find(l => l.id === libroCarrito.id);
+        if (!libroCarrito.cantidad || libroCarrito.cantidad < 1) {
+          return res.status(400).json({
+            success: false,
+            message: 'Cantidad inválida',
+            error: `La cantidad para "${libro.titulo}" debe ser al menos 1`
+          });
+        }
+        if (libro.stock < libroCarrito.cantidad) {
+          return res.status(400).json({
+            success: false,
+            message: 'Stock insuficiente',
+            error: `Solo hay ${libro.stock} copias disponibles de "${libro.titulo}"`
+          });
         }
       }
-    }
 
-    return res.status(201).json({
-      success: true,
-      message: 'Orden creada exitosamente',
-      data: {
-        id: orden.id,
-        usuario_id: orden.usuario_id,
-        fecha: orden.fecha,
-        total: orden.total,
-        estado: orden.estado
+      let total = 0;
+      const detallesOrden = [];
+      for (const libroCarrito of libros) {
+        const libro = librosDb.find(l => l.id === libroCarrito.id);
+        const subtotal = libro.precio * libroCarrito.cantidad;
+        total += subtotal;
+        detallesOrden.push({
+          libro_id: libro.id,
+          cantidad: libroCarrito.cantidad,
+          precio_unitario: libro.precio
+        });
       }
-    });
+
+      const { data: orden, error: errorOrden } = await supabaseAdmin
+        .from('orden_compra')
+        .insert({ usuario_id: usuarioId, total: total, estado: 'pendiente' })
+        .select()
+        .single();
+
+      if (errorOrden) throw errorOrden;
+
+      if (detallesOrden.length > 0) {
+        const detallesConOrdenId = detallesOrden.map(detalle => ({ ...detalle, orden_id: orden.id }));
+        const { error: errorDetalles } = await supabaseAdmin.from('detalle_orden').insert(detallesConOrdenId);
+        if (errorDetalles) throw errorDetalles;
+
+        for (const detalle of detallesOrden) {
+          await supabaseAdmin
+            .from('libros')
+            .update({ stock: librosDb.find(l => l.id === detalle.libro_id).stock - detalle.cantidad })
+            .eq('id', detalle.libro_id);
+        }
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: 'Orden creada exitosamente',
+        data: { id: orden.id, usuario_id: orden.usuario_id, fecha: orden.fecha, total: orden.total, estado: orden.estado }
+      });
+    } else {
+      // Modo memoria
+      for (const libroCarrito of libros) {
+        const libro = buscarLibroPorId(libroCarrito.id);
+        if (!libro) {
+          return res.status(400).json({
+            success: false,
+            message: 'Libro no encontrado',
+            error: `No existe un libro con el ID: ${libroCarrito.id}`
+          });
+        }
+        if (!libroCarrito.cantidad || libroCarrito.cantidad < 1) {
+          return res.status(400).json({
+            success: false,
+            message: 'Cantidad inválida',
+            error: `La cantidad para "${libro.titulo}" debe ser al menos 1`
+          });
+        }
+        if (libro.stock < libroCarrito.cantidad) {
+          return res.status(400).json({
+            success: false,
+            message: 'Stock insuficiente',
+            error: `Solo hay ${libro.stock} copias disponibles de "${libro.titulo}"`
+          });
+        }
+      }
+
+      let total = 0;
+      const detallesOrden = [];
+      for (const libroCarrito of libros) {
+        const libro = buscarLibroPorId(libroCarrito.id);
+        const subtotal = libro.precio * libroCarrito.cantidad;
+        total += subtotal;
+        detallesOrden.push({
+          libro_id: libro.id,
+          titulo: libro.titulo,
+          autor: libro.autor,
+          cantidad: libroCarrito.cantidad,
+          precio_unitario: libro.precio,
+          subtotal: subtotal
+        });
+        actualizarStockLibro(libro.id, libroCarrito.cantidad);
+      }
+
+      const orden = {
+        id: uuidv4(),
+        usuario_id: usuarioId,
+        total: total,
+        estado: 'pendiente',
+        fecha_creacion: new Date().toISOString(),
+        fecha_actualizacion: new Date().toISOString(),
+        detalle_orden: detallesOrden
+      };
+
+      db.ordenes.push(orden);
+
+      return res.status(201).json({
+        success: true,
+        message: 'Orden creada exitosamente (modo memoria)',
+        data: {
+          id: orden.id,
+          usuario_id: orden.usuario_id,
+          fecha: orden.fecha_creacion,
+          total: orden.total,
+          estado: orden.estado
+        }
+      });
+    }
   } catch (error) {
     console.error('Error al crear orden:', error);
     res.status(500).json({
@@ -164,80 +172,76 @@ const crearNuevaOrden = async (req, res) => {
 const obtenerMisOrdenes = async (req, res) => {
   try {
     const usuarioId = req.usuario.id;
-    console.log('Obteniendo órdenes para usuario:', usuarioId);
 
-    if (!isSupabaseConfigured()) {
-      return res.status(501).json({
-        success: false,
-        message: 'Función no disponible',
-        error: 'Configure Supabase'
-      });
-    }
+    if (isSupabaseConfigured()) {
+      const { data: ordenes, error } = await supabase
+        .from('orden_compra')
+        .select(`*, detalle_orden (*)`)
+        .eq('usuario_id', usuarioId)
+        .order('fecha', { ascending: false });
 
-    const { data: ordenes, error } = await supabase
-      .from('orden_compra')
-      .select(`
-        *,
-        detalle_orden (
-          *
-        )
-      `)
-      .eq('usuario_id', usuarioId)
-      .order('fecha', { ascending: false });
+      if (error) throw error;
 
-    console.log('Órdenes obtenidas:', ordenes);
-    console.log('Error:', error);
+      if (!ordenes || ordenes.length === 0) {
+        return res.json({ success: true, message: 'No hay órdenes', data: [] });
+      }
 
-    if (error) throw error;
+      const libroIds = [...new Set(ordenes.flatMap(o => (o.detalle_orden || []).map(d => d.libro_id)))];
+      let librosMap = {};
+      if (libroIds.length > 0) {
+        const { data: libros } = await supabase.from('libros').select('*').in('id', libroIds);
+        if (libros) libros.forEach(libro => { librosMap[libro.id] = libro; });
+      }
 
-    if (!ordenes || ordenes.length === 0) {
+      const ordenesFormateadas = (ordenes || []).map(orden => ({
+        id: orden.id,
+        usuario_id: orden.usuario_id,
+        fecha_creacion: orden.fecha,
+        total: orden.total,
+        estado: orden.estado,
+        libros: (orden.detalle_orden || []).map(d => {
+          const libro = librosMap[d.libro_id] || {};
+          return {
+            id: d.libro_id,
+            titulo: libro.titulo || d.titulo || 'Libro',
+            autor: libro.autor || d.autor || '',
+            imagen: libro.imagen_url || libro.imagen || '',
+            cantidad: d.cantidad,
+            precio: d.precio_unitario
+          };
+        })
+      }));
+
       return res.json({
         success: true,
-        message: 'No hay órdenes',
-        data: []
+        message: 'Órdenes obtenidas exitosamente',
+        data: ordenesFormateadas
       });
-    }
-
-    const libroIds = [...new Set(ordenes.flatMap(o => (o.detalle_orden || []).map(d => d.libro_id)))];
-    
-    let librosMap = {};
-    if (libroIds.length > 0) {
-      const { data: libros } = await supabase
-        .from('libros')
-        .select('*')
-        .in('id', libroIds);
-      
-      if (libros) {
-        libros.forEach(libro => {
-          librosMap[libro.id] = libro;
-        });
-      }
-    }
-
-    const ordenesFormateadas = (ordenes || []).map(orden => ({
-      id: orden.id,
-      usuario_id: orden.usuario_id,
-      fecha_creacion: orden.fecha,
-      total: orden.total,
-      estado: orden.estado,
-      libros: (orden.detalle_orden || []).map(d => {
-        const libro = librosMap[d.libro_id] || {};
-        return {
+    } else {
+      // Modo memoria
+      const ordenes = buscarOrdenesPorUsuario(usuarioId);
+      const ordenesFormateadas = ordenes.map(orden => ({
+        id: orden.id,
+        usuario_id: orden.usuario_id,
+        fecha_creacion: orden.fecha_creacion,
+        total: orden.total,
+        estado: orden.estado,
+        libros: (orden.detalle_orden || []).map(d => ({
           id: d.libro_id,
-          titulo: libro.titulo || 'Libro',
-          autor: libro.autor || '',
-          imagen: libro.imagen_url || '',
+          titulo: d.titulo || 'Libro',
+          autor: d.autor || '',
+          imagen: buscarLibroPorId(d.libro_id)?.imagen || '',
           cantidad: d.cantidad,
           precio: d.precio_unitario
-        };
-      })
-    }));
+        }))
+      }));
 
-    return res.json({
-      success: true,
-      message: 'Órdenes obtenidas exitosamente',
-      data: ordenesFormateadas
-    });
+      return res.json({
+        success: true,
+        message: 'Órdenes obtenidas exitosamente (modo memoria)',
+        data: ordenesFormateadas
+      });
+    }
   } catch (error) {
     console.error('Error al obtener órdenes:', error);
     res.status(500).json({
@@ -253,50 +257,66 @@ const obtenerOrdenPorId = async (req, res) => {
     const { id } = req.params;
     const usuarioId = req.usuario.id;
 
-    if (!isSupabaseConfigured()) {
-      return res.status(501).json({
-        success: false,
-        message: 'Función no disponible',
-        error: 'Configure Supabase'
-      });
-    }
+    if (isSupabaseConfigured()) {
+      const { data: orden, error } = await supabase
+        .from('orden_compra')
+        .select(`*, detalle_orden (*)`)
+        .eq('id', id)
+        .eq('usuario_id', usuarioId)
+        .single();
 
-    const { data: orden, error } = await supabase
-      .from('orden_compra')
-      .select(`
-        *,
-        detalle_orden (
-          *
-        )
-      `)
-      .eq('id', id)
-      .eq('usuario_id', usuarioId)
-      .single();
-
-    if (error || !orden) {
-      return res.status(404).json({
-        success: false,
-        message: 'Orden no encontrada',
-        error: `No existe una orden con el ID: ${id}`
-      });
-    }
-
-    return res.json({
-      success: true,
-      message: 'Orden obtenida exitosamente',
-      data: {
-        id: orden.id,
-        usuario_id: orden.usuario_id,
-        fecha_creacion: orden.fecha,
-        total: orden.total,
-        estado: orden.estado,
-        libros: (orden.detalle_orden || []).map(d => ({
-          libro_id: d.libro_id,
-          cantidad: d.cantidad,
-          precio_unitario: d.precio_unitario
-        }))
+      if (error || !orden) {
+        return res.status(404).json({
+          success: false,
+          message: 'Orden no encontrada',
+          error: `No existe una orden con el ID: ${id}`
+        });
       }
-    });
+
+      return res.json({
+        success: true,
+        message: 'Orden obtenida exitosamente',
+        data: {
+          id: orden.id,
+          usuario_id: orden.usuario_id,
+          fecha_creacion: orden.fecha,
+          total: orden.total,
+          estado: orden.estado,
+          libros: (orden.detalle_orden || []).map(d => ({
+            libro_id: d.libro_id,
+            cantidad: d.cantidad,
+            precio_unitario: d.precio_unitario
+          }))
+        }
+      });
+    } else {
+      // Modo memoria
+      const orden = getOrdenPorId(id);
+      if (!orden || orden.usuario_id !== usuarioId) {
+        return res.status(404).json({
+          success: false,
+          message: 'Orden no encontrada',
+          error: `No existe una orden con el ID: ${id}`
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Orden obtenida exitosamente (modo memoria)',
+        data: {
+          id: orden.id,
+          usuario_id: orden.usuario_id,
+          fecha_creacion: orden.fecha_creacion,
+          total: orden.total,
+          estado: orden.estado,
+          libros: (orden.detalle_orden || []).map(d => ({
+            libro_id: d.libro_id,
+            cantidad: d.cantidad,
+            precio_unitario: d.precio_unitario
+          }))
+        }
+      });
+    }
   } catch (error) {
     console.error('Error al obtener orden:', error);
     res.status(500).json({
@@ -312,81 +332,91 @@ const cancelarOrden = async (req, res) => {
     const { id } = req.params;
     const usuarioId = req.usuario.id;
 
-    if (!isSupabaseConfigured()) {
-      return res.status(501).json({
-        success: false,
-        message: 'Función no disponible',
-        error: 'Configure Supabase'
-      });
-    }
+    if (isSupabaseConfigured()) {
+      const { data: ordenExistente, error: errorBusqueda } = await supabase
+        .from('orden_compra')
+        .select('*')
+        .eq('id', id)
+        .eq('usuario_id', usuarioId)
+        .single();
 
-    const { data: ordenExistente, error: errorBusqueda } = await supabase
-      .from('orden_compra')
-      .select('*')
-      .eq('id', id)
-      .eq('usuario_id', usuarioId)
-      .single();
+      if (errorBusqueda || !ordenExistente) {
+        return res.status(404).json({
+          success: false,
+          message: 'Orden no encontrada',
+          error: `No existe una orden con el ID: ${id}`
+        });
+      }
 
-    if (errorBusqueda || !ordenExistente) {
-      return res.status(404).json({
-        success: false,
-        message: 'Orden no encontrada',
-        error: `No existe una orden con el ID: ${id}`
-      });
-    }
+      if (!['pendiente', 'procesando'].includes(ordenExistente.estado)) {
+        return res.status(400).json({
+          success: false,
+          message: 'No se puede cancelar',
+          error: 'Solo se pueden cancelar órdenes pendientes o en procesamiento'
+        });
+      }
 
-    if (!['pendiente', 'procesando'].includes(ordenExistente.estado)) {
-      return res.status(400).json({
-        success: false,
-        message: 'No se puede cancelar',
-        error: 'Solo se pueden cancelar órdenes pendientes o en procesamiento'
-      });
-    }
+      const { data: detalles, error: errorDetalles } = await supabase
+        .from('detalle_orden')
+        .select('libro_id, cantidad')
+        .eq('orden_id', id);
 
-    // Obtener detalles para restaurar stock
-    const { data: detalles, error: errorDetalles } = await supabase
-      .from('detalle_orden')
-      .select('libro_id, cantidad')
-      .eq('orden_id', id);
+      if (errorDetalles) throw errorDetalles;
 
-    if (errorDetalles) throw errorDetalles;
+      const { data: orden, error } = await supabase
+        .from('orden_compra')
+        .update({ estado: 'cancelado' })
+        .eq('id', id)
+        .select()
+        .single();
 
-    const { data: orden, error } = await supabase
-      .from('orden_compra')
-      .update({ estado: 'cancelado' })
-      .eq('id', id)
-      .select()
-      .single();
+      if (error) throw error;
 
-    if (error) throw error;
-
-    // Restaurar stock de los libros
-    if (detalles && detalles.length > 0) {
-      for (const detalle of detalles) {
-        const { data: libro } = await supabase
-          .from('libros')
-          .select('stock')
-          .eq('id', detalle.libro_id)
-          .single();
-
-        if (libro) {
-          const { error: errorStock } = await supabase
-            .from('libros')
-            .update({ stock: libro.stock + detalle.cantidad })
-            .eq('id', detalle.libro_id);
-
-          if (errorStock) {
-            console.error('Error al restaurar stock:', errorStock);
+      if (detalles && detalles.length > 0) {
+        for (const detalle of detalles) {
+          const { data: libro } = await supabase.from('libros').select('stock').eq('id', detalle.libro_id).single();
+          if (libro) {
+            await supabase.from('libros').update({ stock: libro.stock + detalle.cantidad }).eq('id', detalle.libro_id);
           }
         }
       }
-    }
 
-    return res.json({
-      success: true,
-      message: 'Orden cancelada exitosamente',
-      data: orden
-    });
+      return res.json({ success: true, message: 'Orden cancelada exitosamente', data: orden });
+    } else {
+      // Modo memoria
+      const orden = getOrdenPorId(id);
+      if (!orden || orden.usuario_id !== usuarioId) {
+        return res.status(404).json({
+          success: false,
+          message: 'Orden no encontrada',
+          error: `No existe una orden con el ID: ${id}`
+        });
+      }
+
+      if (!['pendiente', 'procesando'].includes(orden.estado)) {
+        return res.status(400).json({
+          success: false,
+          message: 'No se puede cancelar',
+          error: 'Solo se pueden cancelar órdenes pendientes o en procesamiento'
+        });
+      }
+
+      orden.estado = 'cancelado';
+
+      // Restaurar stock
+      (orden.detalle_orden || []).forEach(detalle => {
+        const libro = buscarLibroPorId(detalle.libro_id);
+        if (libro) {
+          libro.stock += detalle.cantidad;
+        }
+      });
+
+      return res.json({
+        success: true,
+        message: 'Orden cancelada exitosamente (modo memoria)',
+        data: orden
+      });
+    }
   } catch (error) {
     console.error('Error al cancelar orden:', error);
     res.status(500).json({

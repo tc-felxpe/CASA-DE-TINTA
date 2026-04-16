@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useCarrito } from '../context/CarritoContext'
+import { getLibroImagen } from '../config/imagenes'
 import './Carrito.css'
 
 export default function Carrito() {
@@ -56,8 +57,8 @@ export default function Carrito() {
           {carrito.map(item => (
             <div key={item.id} className="carrito-item">
               <div className="item-imagen">
-                {(item.imagen_url || item.imagen) ? (
-                  <img src={item.imagen_url || item.imagen} alt={item.titulo} />
+                {getLibroImagen(item) ? (
+                  <img src={getLibroImagen(item)} alt={item.titulo} />
                 ) : (
                   <div className="item-sin-imagen">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
