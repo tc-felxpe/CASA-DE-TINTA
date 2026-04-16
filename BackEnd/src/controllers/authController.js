@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { v4: uuidv4 } = require('uuid');
 const { supabase, supabaseAdmin, isSupabaseConfigured } = require('../config/supabase');
+const { db, buscarUsuarioPorEmail } = require('../data/database');
 
 const { JWT_SECRET, JWT_EXPIRES_IN } = process.env;
 
@@ -76,10 +78,50 @@ const registrarUsuario = async (req, res) => {
         }
       });
     } else {
-      return res.status(501).json({
-        success: false,
-        message: 'Función no disponible',
-        error: 'Configure Supabase para registrar usuarios'
+      // Modo memoria
+      const usuarioExistente = buscarUsuarioPorEmail(email);
+      if (usuarioExistente) {
+        return res.status(400).json({
+          success: false,
+          message: 'Usuario ya existe',
+          error: 'Ya existe un usuario registrado con este email'
+        });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(password, salt);
+
+      const nuevoUsuario = {
+        id: uuidv4(),
+        nombre,
+        email,
+        password_hash: passwordHash,
+        rol: 'usuario',
+        fecha_registro: new Date().toISOString()
+      };
+
+      db.usuarios.push(nuevoUsuario);
+
+      const token = jwt.sign(
+        { id: nuevoUsuario.id, email: nuevoUsuario.email, rol: nuevoUsuario.rol },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRES_IN }
+      );
+
+      const usuarioSinPassword = {
+        id: nuevoUsuario.id,
+        nombre: nuevoUsuario.nombre,
+        email: nuevoUsuario.email,
+        fecha_registro: nuevoUsuario.fecha_registro
+      };
+
+      return res.status(201).json({
+        success: true,
+        message: 'Usuario registrado exitosamente (modo memoria)',
+        data: {
+          token,
+          usuario: usuarioSinPassword
+        }
       });
     }
   } catch (error) {
@@ -150,10 +192,45 @@ const iniciarSesion = async (req, res) => {
         }
       });
     } else {
-      return res.status(501).json({
-        success: false,
-        message: 'Función no disponible',
-        error: 'Configure Supabase para iniciar sesión'
+      // Modo memoria
+      const usuario = buscarUsuarioPorEmail(email);
+      if (!usuario) {
+        return res.status(401).json({
+          success: false,
+          message: 'Credenciales inválidas',
+          error: 'El email o contraseña son incorrectos'
+        });
+      }
+
+      const passwordValido = await bcrypt.compare(password, usuario.password_hash);
+      if (!passwordValido) {
+        return res.status(401).json({
+          success: false,
+          message: 'Credenciales inválidas',
+          error: 'El email o contraseña son incorrectos'
+        });
+      }
+
+      const token = jwt.sign(
+        { id: usuario.id, email: usuario.email, rol: usuario.rol || 'usuario' },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRES_IN }
+      );
+
+      const usuarioSinPassword = {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        email: usuario.email,
+        fecha_registro: usuario.fecha_registro
+      };
+
+      return res.json({
+        success: true,
+        message: 'Login exitoso (modo memoria)',
+        data: {
+          token,
+          usuario: usuarioSinPassword
+        }
       });
     }
   } catch (error) {
@@ -191,10 +268,25 @@ const obtenerPerfil = async (req, res) => {
         data: usuario
       });
     } else {
-      return res.status(501).json({
-        success: false,
-        message: 'Función no disponible',
-        error: 'Configure Supabase'
+      // Modo memoria
+      const usuario = db.usuarios.find(u => u.id === usuarioId);
+      if (!usuario) {
+        return res.status(404).json({
+          success: false,
+          message: 'Usuario no encontrado',
+          error: 'No se encontró el usuario'
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Perfil obtenido exitosamente (modo memoria)',
+        data: {
+          id: usuario.id,
+          nombre: usuario.nombre,
+          email: usuario.email,
+          fecha_registro: usuario.fecha_registro
+        }
       });
     }
   } catch (error) {
@@ -228,10 +320,27 @@ const actualizarPerfil = async (req, res) => {
         data: usuario
       });
     } else {
-      return res.status(501).json({
-        success: false,
-        message: 'Función no disponible',
-        error: 'Configure Supabase'
+      // Modo memoria
+      const usuario = db.usuarios.find(u => u.id === usuarioId);
+      if (!usuario) {
+        return res.status(404).json({
+          success: false,
+          message: 'Usuario no encontrado',
+          error: 'No se encontró el usuario'
+        });
+      }
+
+      usuario.nombre = nombre || usuario.nombre;
+
+      return res.json({
+        success: true,
+        message: 'Perfil actualizado exitosamente (modo memoria)',
+        data: {
+          id: usuario.id,
+          nombre: usuario.nombre,
+          email: usuario.email,
+          fecha_registro: usuario.fecha_registro
+        }
       });
     }
   } catch (error) {
