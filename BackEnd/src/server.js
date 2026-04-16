@@ -13,21 +13,8 @@ const detalleOrdenesRoutes = require('./routes/detalleOrdenesRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const allowedOrigins = [
-  'https://casa-de-tinta-frontend.vercel.app',
-  'https://casa-de-tinta-frontend-h0i9sf2on-tc-felxpes-projects.vercel.app',
-  'http://localhost:5173'
-];
-
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(null, true);
-    }
-  },
-  credentials: true,
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -87,11 +74,11 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
+  console.error('Error:', err.stack || err.message || err);
   res.status(500).json({
     success: false,
     message: 'Error interno del servidor',
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Algo salió mal'
+    error: process.env.NODE_ENV === 'development' ? (err.message || 'Error desconocido') : 'Algo salió mal'
   });
 });
 
