@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import ModalLibro from '../components/ModalLibro'
 import BookCard from '../components/BookCard'
+import { apiFetch } from '../config/api'
 import './Home.css'
 
 export default function Home() {
@@ -20,7 +21,7 @@ export default function Home() {
         const url = query
           ? `/api/libros?query=${encodeURIComponent(query)}&limit=100`
           : '/api/libros?limit=100'
-        const res = await fetch(url)
+        const res = await apiFetch(url)
         const data = await res.json()
         console.log('Libros recibidos:', data.data?.libros?.length, 'Total:', data.data?.pagination?.total)
         if (data.success) {

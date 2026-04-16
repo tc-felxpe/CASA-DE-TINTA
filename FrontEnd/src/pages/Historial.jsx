@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useCarrito } from '../context/CarritoContext'
+import { apiFetch } from '../config/api'
 import './Historial.css'
 
 export default function Historial() {
@@ -17,7 +18,7 @@ export default function Historial() {
 
     const fetchOrdenes = async () => {
       try {
-        const res = await fetch('/api/ordenes/mis-ordenes', {
+        const res = await apiFetch('/api/ordenes/mis-ordenes', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         const data = await res.json()

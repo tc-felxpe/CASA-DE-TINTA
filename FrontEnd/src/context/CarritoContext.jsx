@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { apiFetch } from '../config/api'
 
 const CarritoContext = createContext()
 
@@ -67,7 +68,7 @@ export function CarritoProvider({ children }) {
   }
 
   const login = async (email, password) => {
-    const res = await fetch('/api/auth/login', {
+    const res = await apiFetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -82,7 +83,7 @@ export function CarritoProvider({ children }) {
   }
 
   const registro = async (nombre, email, password) => {
-    const res = await fetch('/api/auth/registro', {
+    const res = await apiFetch('/api/auth/registro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nombre, email, password })
@@ -102,7 +103,7 @@ export function CarritoProvider({ children }) {
 
   const pagar = async () => {
     if (!token) throw new Error('Debes iniciar sesión')
-    const res = await fetch('/api/ordenes', {
+    const res = await apiFetch('/api/ordenes', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

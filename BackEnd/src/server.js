@@ -13,7 +13,25 @@ const detalleOrdenesRoutes = require('./routes/detalleOrdenesRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+const allowedOrigins = [
+  'https://casa-de-tinta-frontend.vercel.app',
+  'https://casa-de-tinta-frontend-h0i9sf2on-tc-felxpes-projects.vercel.app',
+  'http://localhost:5173'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -79,24 +97,26 @@ app.use((err, req, res, next) => {
 
 inicializarLibros();
 
-app.listen(PORT, () => {
-  console.log('');
-  console.log('╔═══════════════════════════════════════════════════════════════════════════╗');
-  console.log('║                                                                           ║');
-  console.log('║   🚀  API Librería Online iniciada                                        ║');
-  console.log('║                                                                           ║');
-  console.log(`║   📖  Documentación Swagger:  http://localhost:${PORT}/api-docs                  ║`);
-  console.log(`║   🏠  Página de inicio:       http://localhost:${PORT}                            ║`);
-  console.log(`║   ❤️   Estado de salud:         http://localhost:${PORT}/health                     ║`);
-  console.log('║                                                                           ║');
-  if (isSupabaseConfigured()) {
-    console.log('║   🗄️   Base de datos:           Supabase (PostgreSQL)                          ║');
-  } else {
-    console.log('║   🗄️   Base de datos:           Memoria local (modo desarrollo)                ║');
-  }
-  console.log('║                                                                           ║');
-  console.log('╚═══════════════════════════════════════════════════════════════════════════╝');
-  console.log('');
-});
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log('');
+    console.log('╔═══════════════════════════════════════════════════════════════════════════╗');
+    console.log('║                                                                           ║');
+    console.log('║   🚀  API Librería Online iniciada                                        ║');
+    console.log('║                                                                           ║');
+    console.log(`║   📖  Documentación Swagger:  http://localhost:${PORT}/api-docs                  ║`);
+    console.log(`║   🏠  Página de inicio:       http://localhost:${PORT}                            ║`);
+    console.log(`║   ❤️   Estado de salud:         http://localhost:${PORT}/health                     ║`);
+    console.log('║                                                                           ║');
+    if (isSupabaseConfigured()) {
+      console.log('║   🗄️   Base de datos:           Supabase (PostgreSQL)                          ║');
+    } else {
+      console.log('║   🗄️   Base de datos:           Memoria local (modo desarrollo)                ║');
+    }
+    console.log('║                                                                           ║');
+    console.log('╚═══════════════════════════════════════════════════════════════════════════╝');
+    console.log('');
+  });
+}
 
 module.exports = app;
