@@ -1,182 +1,55 @@
 # 📚 Casa de Tinta
 
-> Librería online colombiana con catálogo de libros, carrito de compras, autenticación de usuarios y historial de pedidos.
+> Librería online colombiana dedicada a celebrar la literatura de Colombia. Descubre títulos emblemáticos, arma tu carrito de compras y lleva la magia de nuestras letras a casa.
 
-🔗 **Demo en vivo:**
-- Frontend: [https://casa-de-tinta-frontend.vercel.app](https://casa-de-tinta-frontend.vercel.app)
-- Backend: [https://casa-de-tinta-backend.vercel.app](https://casa-de-tinta-backend.vercel.app)
+🔗 **Visítanos:** [https://casa-de-tinta-frontend.vercel.app](https://casa-de-tinta-frontend.vercel.app)
 
 ---
 
-## ✨ Características
+## ✨ ¿Qué puedes hacer en Casa de Tinta?
 
-- 🏠 **Catálogo de libros** con búsqueda en tiempo real
-- 🛒 **Carrito de compras** persistente en `localStorage`
-- 🔐 **Autenticación JWT** (registro e inicio de sesión)
-- 📜 **Historial de pedidos** por usuario
-- 🦋 **Animaciones visuales** con mariposas flotantes
-- ☁️ **Backend serverless** desplegado en Vercel
-- 🗄️ **Base de datos** con Supabase PostgreSQL + fallback en memoria
-- 📱 **Diseño responsive** para móvil, tablet y escritorio
+- 📖 **Explorar nuestro catálogo** de literatura colombiana con búsqueda en tiempo real
+- 🛒 **Agregar libros a tu carrito** y gestionar tu compra fácilmente
+- 🔐 **Crear una cuenta** e iniciar sesión para guardar tu experiencia
+- 📜 **Revisar tu historial de pedidos** y ver el detalle de cada compra
+- 🦋 **Disfrutar un diseño cálido y acogedor** con animaciones suaves que acompañan tu navegación
 
 ---
 
-## 🛠️ Stack Tecnológico
+## 🖼️ Nuestra colección
 
-| Capa | Tecnología |
-|------|-----------|
-| **Frontend** | React 18 + Vite + React Router DOM |
-| **Backend** | Node.js + Express |
-| **Base de datos** | Supabase (PostgreSQL) |
-| **Autenticación** | JWT + bcryptjs |
-| **Despliegue** | Vercel (frontend + serverless functions) |
+Contamos con una selección de **24 títulos** de la literatura colombiana, incluyendo obras de:
 
----
+- Gabriel García Márquez
+- José Eustasio Rivera
+- Laura Restrepo
+- Jorge Franco
+- Fernando Vallejo
+- Evelio Rosero
+- Piedad Bonnett
+- Y muchos más...
 
-## 📁 Estructura del Proyecto
+Algunos de nuestros libros destacados:
 
-```
-CASA-DE-TINTA/
-├── BackEnd/
-│   ├── api/
-│   │   └── index.js              # Entry point serverless para Vercel
-│   ├── src/
-│   │   ├── config/               # Configuración de Supabase
-│   │   ├── controllers/          # Lógica de auth, libros, órdenes
-│   │   ├── data/                 # Base de datos en memoria + seeders
-│   │   ├── middleware/           # Auth JWT, manejo de errores
-│   │   ├── routes/               # Rutas API REST
-│   │   └── utils/                # Helpers
-│   ├── package.json
-│   └── .env
-│
-├── FrontEnd/
-│   ├── public/img/               # Portadas de libros (24 títulos)
-│   ├── src/
-│   │   ├── components/           # BookCard, Header, Modal, etc.
-│   │   ├── context/              # AuthContext, CartContext
-│   │   ├── pages/                # Home, Login, Carrito, Historial
-│   │   ├── config/               # api.js, imagenes.js
-│   │   └── hooks/                # Custom hooks
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js
-│
-└── README.md
-```
+| Título | Autor |
+|:-------|:------|
+| Cien años de soledad | Gabriel García Márquez |
+| La vorágine | José Eustasio Rivera |
+| Delirio | Laura Restrepo |
+| Rosario Tijeras | Jorge Franco |
+| El amor en los tiempos del cólera | Gabriel García Márquez |
+| Satanás | Mario Mendoza |
+| La perra | Piedad Bonnett |
+| El olvido que seremos | Héctor Abad Faciolince |
+| Los ejércitos | Evelio Rosero |
+| Leer es resistir | William Ospina |
 
 ---
 
-## 🚀 Instalación Local
+## 🎨 Diseño
 
-### 1. Clonar el repositorio
-
-```bash
-git clone https://github.com/tc-felxpe/CASA-DE-TINTA.git
-cd CASA-DE-TINTA
-```
-
-### 2. Configurar el Backend
-
-```bash
-cd BackEnd
-cp .env.example .env   # o crear .env manualmente
-npm install
-npm run dev
-```
-
-El backend correrá por defecto en `http://localhost:3000`.
-
-### 3. Configurar el Frontend
-
-```bash
-cd ../FrontEnd
-npm install
-npm run dev
-```
-
-El frontend correrá por defecto en `http://localhost:5173`.
+Casa de Tinta fue pensada con una paleta de colores cálidos —naranjas, beiges y amarillos suaves— que evocan las tardes de lectura bajo la luz dorada. Las tipografías combinan la elegancia de *Playfair Display* con la amabilidad de *Quicksand*, creando una experiencia visual acogedora y literaria.
 
 ---
 
-## 🔑 Variables de Entorno
-
-### Backend (`BackEnd/.env`)
-
-```env
-PORT=3000
-JWT_SECRET=tu_jwt_secret
-JWT_EXPIRES_IN=24h
-
-SUPABASE_URL=https://tu-proyecto.supabase.co
-SUPABASE_ANON_KEY=tu_anon_key
-SUPABASE_SERVICE_KEY=tu_service_role_key
-```
-
-> **Nota:** Si no se configuran las variables de Supabase, el backend funciona automáticamente en **modo memoria** con datos de ejemplo.
-
-### Frontend (`FrontEnd/.env`)
-
-```env
-VITE_API_URL=https://casa-de-tinta-backend.vercel.app
-```
-
-Para desarrollo local:
-
-```env
-VITE_API_URL=http://localhost:3000
-```
-
----
-
-## 📖 API Endpoints
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET` | `/health` | Estado del servidor |
-| `GET` | `/api/libros` | Listar todos los libros |
-| `GET` | `/api/libros/:id` | Detalle de un libro |
-| `POST` | `/api/auth/registro` | Registrar usuario |
-| `POST` | `/api/auth/login` | Iniciar sesión |
-| `GET` | `/api/auth/perfil` | Perfil del usuario autenticado |
-| `POST` | `/api/ordenes` | Crear una orden |
-| `GET` | `/api/ordenes/mis-ordenes` | Historial de compras |
-
----
-
-## 🖼️ Galería de Libros
-
-El proyecto incluye **24 portadas** de literatura colombiana:
-
-| ID | Título | ID | Título |
-|:--:|:-------|:--:|:-------|
-| 1 | Cien años de soledad | 13 | Sin remedio |
-| 2 | La vorágine | 14 | El olvido que seremos |
-| 3 | Delirio | 15 | Los parientes de Ester |
-| 4 | Rosario Tijeras | 16 | Apocalipsis |
-| 5 | El amor en los tiempos del cólera | 17 | La casa de las dos palmas |
-| 6 | Satanás | 18 | Cóndores no entierran todos los días |
-| 7 | La perra | 19 | Abraíme |
-| 8 | María | 20 | Changó el gran putas |
-| 9 | El coronel no tiene quien le escriba | 21 | Los ejércitos |
-| 10 | ¡Que viva la música! | 22 | Las travesías |
-| 11 | La tejedora de coronas | 23 | La oculta |
-| 12 | Lo que no tiene nombre | 24 | Leer es resistir |
-
----
-
-## 🦋 Notas de Diseño
-
-- Paleta de colores cálidos: naranja, beige y amarillo suave.
-- Tipografías: **Quicksand** para textos y **Playfair Display** para títulos.
-- Mariposas animadas con CSS puro (`z-index: -1`) para no interferir con la interfaz.
-
----
-
-## 📝 Licencia
-
-Este proyecto fue desarrollado con fines educativos. Puedes usarlo como base para tus propios proyectos.
-
----
-
-<p align="center">Hecho con ❤️ y mucho ☕ en Colombia</p>
+<p align="center">Hecho con ❤️ en Colombia</p>
