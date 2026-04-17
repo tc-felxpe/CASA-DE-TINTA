@@ -1,4 +1,5 @@
 // Mapeo de IDs de libros a imágenes locales en /public/img/
+// Este fallback solo se usa si el backend no devuelve imagen_url
 const IMAGENES_LOCALES = {
   '1': '/img/1-cien-anos-de-soledad.jpg',
   '2': '/img/2-la-voragine.jpg',
@@ -28,7 +29,9 @@ const IMAGENES_LOCALES = {
 
 export const getLibroImagen = (libro) => {
   if (!libro) return null
-  const local = IMAGENES_LOCALES[libro.id]
-  if (local) return local
-  return libro.imagen_url || libro.imagen || null
+  // Si el backend (Supabase) ya devuelve una imagen, usarla directamente
+  if (libro.imagen_url) return libro.imagen_url
+  if (libro.imagen) return libro.imagen
+  // Fallback para modo memoria (IDs 1-24)
+  return IMAGENES_LOCALES[libro.id] || null
 }
