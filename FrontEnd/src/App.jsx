@@ -119,6 +119,9 @@ export default function App() {
           <Route path="/login" element={<Login />} />
         </Routes>
       </main>
+      <footer className="app-footer">
+        Casa de Tinta - Librería | © 2026 Todos los derechos reservados. | Bogotá, Colombia | Realizado por Andrés Felipe Castillo
+      </footer>
     </div>
   )
 }

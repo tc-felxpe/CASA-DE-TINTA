@@ -75,6 +75,16 @@ body::before {
   width: 100%;
 }
 
+.app-footer {
+  text-align: center;
+  padding: 20px 24px;
+  font-size: 14px;
+  color: var(--text-light);
+  background: linear-gradient(135deg, var(--card-warm) 0%, var(--background-warm) 100%);
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+
 .btn {
   padding: 12px 24px;
   border: none;
