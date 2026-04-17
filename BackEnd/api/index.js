@@ -34,7 +34,13 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    supabase: isSupabaseConfigured() ? 'connected' : 'disconnected'
+    supabase: isSupabaseConfigured() ? 'connected' : 'disconnected',
+    debug: {
+      hasUrl: !!process.env.SUPABASE_URL,
+      hasAnonKey: !!process.env.SUPABASE_ANON_KEY,
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_KEY,
+      urlPrefix: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 20) : null
+    }
   });
 });
 
