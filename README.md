@@ -1,8 +1,8 @@
 # 📚 Casa de Tinta
 
-> Librería online colombiana dedicada a celebrar la literatura de Colombia. Descubre títulos emblemáticos, arma tu carrito de compras y lleva la magia de nuestras letras a casa.
+> Este proyecto es librería online colombiana dedicada a celebrar la literatura de Colombia. Descubre títulos emblemáticos, arma tu carrito de compras y lleva la magia de nuestras letras a casa. (ten en cuenta que no se compra con dinero real y tampoco vas a tener el libro en PDF ni en ningun otro formato)
 
-🔗 **Visítanos:** [https://casa-de-tinta-frontend.vercel.app](https://casa-de-tinta-frontend.vercel.app)
+🔗 **Visíta:** [https://casa-de-tinta-frontend.vercel.app](https://casa-de-tinta-frontend.vercel.app)
 
 ---
 
@@ -16,9 +16,9 @@
 
 ---
 
-## 🖼️ Nuestra colección
+## 🖼️ colección
 
-Contamos con una selección de **24 títulos** de la literatura colombiana, incluyendo obras de:
+Cuenta con una selección de **24 títulos** de la literatura colombiana, incluyendo obras de:
 
 - Gabriel García Márquez
 - José Eustasio Rivera
@@ -52,4 +52,4 @@ Casa de Tinta fue pensada con una paleta de colores cálidos —naranjas, beiges
 
 ---
 
-<p align="center">Hecho con ❤️ en Colombia</p>
+<p align="center">Casa De Tinta - Realizado por Andres Felipe Castillo </p>
