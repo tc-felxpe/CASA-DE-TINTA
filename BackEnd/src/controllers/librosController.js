@@ -8,99 +8,105 @@ const obtenerLibros = async (req, res) => {
     const limitNum = parseInt(limit) || 24;
     const startIndex = (pageNum - 1) * limitNum;
 
-    if (isSupabaseConfigured()) {
-      let supabaseQuery = supabase
-        .from('libros')
-        .select('*', { count: 'exact' })
-        .range(startIndex, startIndex + limitNum - 1);
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        let supabaseQuery = supabase
+          .from('libros')
+          .select('*', { count: 'exact' })
+          .range(startIndex, startIndex + limitNum - 1);
 
-      if (query) {
-        const busqueda = `%${query}%`;
-        supabaseQuery = supabaseQuery.or(`titulo.ilike.${busqueda},autor.ilike.${busqueda},sinopsis.ilike.${busqueda}`);
-      }
-
-      if (autor) {
-        supabaseQuery = supabaseQuery.ilike('autor', `%${autor}%`);
-      }
-
-      if (categoria) {
-        supabaseQuery = supabaseQuery.ilike('categoria', `%${categoria}%`);
-      }
-
-      if (minPrecio) {
-        supabaseQuery = supabaseQuery.gte('precio', parseFloat(minPrecio));
-      }
-
-      if (maxPrecio) {
-        supabaseQuery = supabaseQuery.lte('precio', parseFloat(maxPrecio));
-      }
-
-      const { data: libros, error, count } = await supabaseQuery;
-
-      if (error) throw error;
-
-      return res.json({
-        success: true,
-        message: 'Libros obtenidos exitosamente',
-        data: {
-          libros: libros || [],
-          pagination: {
-            total: count || 0,
-            page: pageNum,
-            limit: limitNum,
-            totalPages: Math.ceil((count || 0) / limitNum)
-          }
+        if (query) {
+          const busqueda = `%${query}%`;
+          supabaseQuery = supabaseQuery.or(`titulo.ilike.${busqueda},autor.ilike.${busqueda},sinopsis.ilike.${busqueda}`);
         }
-      });
-    } else {
-      let libros = [...db.libros];
 
-      if (query) {
-        const busqueda = query.toLowerCase();
-        libros = libros.filter(libro =>
-          libro.titulo.toLowerCase().includes(busqueda) ||
-          libro.autor.toLowerCase().includes(busqueda) ||
-          libro.sinopsis.toLowerCase().includes(busqueda)
-        );
-      }
-
-      if (autor) {
-        libros = libros.filter(libro =>
-          libro.autor.toLowerCase().includes(autor.toLowerCase())
-        );
-      }
-
-      if (categoria) {
-        libros = libros.filter(libro =>
-          libro.categoria.toLowerCase().includes(categoria.toLowerCase())
-        );
-      }
-
-      if (minPrecio) {
-        libros = libros.filter(libro => libro.precio >= parseFloat(minPrecio));
-      }
-
-      if (maxPrecio) {
-        libros = libros.filter(libro => libro.precio <= parseFloat(maxPrecio));
-      }
-
-      const librosPaginados = libros.slice(startIndex, startIndex + limitNum);
-      const totalPages = Math.ceil(libros.length / limitNum);
-
-      return res.json({
-        success: true,
-        message: 'Libros obtenidos exitosamente (modo memoria)',
-        data: {
-          libros: librosPaginados,
-          pagination: {
-            total: libros.length,
-            page: pageNum,
-            limit: limitNum,
-            totalPages
-          }
+        if (autor) {
+          supabaseQuery = supabaseQuery.ilike('autor', `%${autor}%`);
         }
-      });
+
+        if (categoria) {
+          supabaseQuery = supabaseQuery.ilike('categoria', `%${categoria}%`);
+        }
+
+        if (minPrecio) {
+          supabaseQuery = supabaseQuery.gte('precio', parseFloat(minPrecio));
+        }
+
+        if (maxPrecio) {
+          supabaseQuery = supabaseQuery.lte('precio', parseFloat(maxPrecio));
+        }
+
+        const { data: libros, error, count } = await supabaseQuery;
+
+        if (error) throw error;
+
+        return res.json({
+          success: true,
+          message: 'Libros obtenidos exitosamente',
+          data: {
+            libros: libros || [],
+            pagination: {
+              total: count || 0,
+              page: pageNum,
+              limit: limitNum,
+              totalPages: Math.ceil((count || 0) / limitNum)
+            }
+          }
+        });
+      } catch (supabaseError) {
+        console.warn('⚠️  Supabase falló, usando modo memoria:', supabaseError.message);
+        // Fallthrough al modo memoria
+      }
     }
+
+    // Modo memoria (fallback cuando Supabase no está configurado o falla)
+    let libros = [...db.libros];
+
+    if (query) {
+      const busqueda = query.toLowerCase();
+      libros = libros.filter(libro =>
+        libro.titulo.toLowerCase().includes(busqueda) ||
+        libro.autor.toLowerCase().includes(busqueda) ||
+        libro.sinopsis.toLowerCase().includes(busqueda)
+      );
+    }
+
+    if (autor) {
+      libros = libros.filter(libro =>
+        libro.autor.toLowerCase().includes(autor.toLowerCase())
+      );
+    }
+
+    if (categoria) {
+      libros = libros.filter(libro =>
+        libro.categoria.toLowerCase().includes(categoria.toLowerCase())
+      );
+    }
+
+    if (minPrecio) {
+      libros = libros.filter(libro => libro.precio >= parseFloat(minPrecio));
+    }
+
+    if (maxPrecio) {
+      libros = libros.filter(libro => libro.precio <= parseFloat(maxPrecio));
+    }
+
+    const librosPaginados = libros.slice(startIndex, startIndex + limitNum);
+    const totalPages = Math.ceil(libros.length / limitNum);
+
+    return res.json({
+      success: true,
+      message: 'Libros obtenidos exitosamente (modo memoria)',
+      data: {
+        libros: librosPaginados,
+        pagination: {
+          total: libros.length,
+          page: pageNum,
+          limit: limitNum,
+          totalPages
+        }
+      }
+    });
   } catch (error) {
     console.error('Error al obtener libros:', error);
     res.status(500).json({
@@ -115,43 +121,49 @@ const obtenerLibroPorId = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (isSupabaseConfigured()) {
-      const { data: libro, error } = await supabase
-        .from('libros')
-        .select('*')
-        .eq('id', id)
-        .single();
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { data: libro, error } = await supabase
+          .from('libros')
+          .select('*')
+          .eq('id', id)
+          .single();
 
-      if (error || !libro) {
-        return res.status(404).json({
-          success: false,
-          message: 'Libro no encontrado',
-          error: `No existe un libro con el ID: ${id}`
+        if (error || !libro) {
+          return res.status(404).json({
+            success: false,
+            message: 'Libro no encontrado',
+            error: `No existe un libro con el ID: ${id}`
+          });
+        }
+
+        return res.json({
+          success: true,
+          message: 'Libro obtenido exitosamente',
+          data: libro
         });
+      } catch (supabaseError) {
+        console.warn('⚠️  Supabase falló, usando modo memoria:', supabaseError.message);
+        // Fallthrough al modo memoria
       }
+    }
 
-      return res.json({
-        success: true,
-        message: 'Libro obtenido exitosamente',
-        data: libro
-      });
-    } else {
-      const libro = buscarLibroMemoria(id);
+    // Modo memoria (fallback cuando Supabase no está configurado o falla)
+    const libro = buscarLibroMemoria(id);
 
-      if (!libro) {
-        return res.status(404).json({
-          success: false,
-          message: 'Libro no encontrado',
-          error: `No existe un libro con el ID: ${id}`
-        });
-      }
-
-      return res.json({
-        success: true,
-        message: 'Libro obtenido exitosamente',
-        data: libro
+    if (!libro) {
+      return res.status(404).json({
+        success: false,
+        message: 'Libro no encontrado',
+        error: `No existe un libro con el ID: ${id}`
       });
     }
+
+    return res.json({
+      success: true,
+      message: 'Libro obtenido exitosamente',
+      data: libro
+    });
   } catch (error) {
     console.error('Error al obtener libro:', error);
     res.status(500).json({
